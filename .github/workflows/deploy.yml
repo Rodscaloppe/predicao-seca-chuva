@@ -1,252 +1,28 @@
-name: CI/CD - Deploy Produção
+name: Deploy Automático
 
 on:
   push:
-    branches: [main, master, develop]
-  pull_request:
     branches: [main, master]
   workflow_dispatch:
 
-env:
-  NODE_VERSION: '18'
-  REGISTRY: ghcr.io
-
 jobs:
-  quality-check:
-    name: Verificação de Qualidade
+  build-and-deploy:
     runs-on: ubuntu-latest
     
-    strategy:
-      matrix:
-        node-version: [18.x, 20.x]
-    
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-node@v4
         with:
-          fetch-depth: 0
-      
-      - name: Setup Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.node-version }}
-          cache: 'npm'
-          cache-dependency-path: package-lock.json
-      
-      - name: Instalar Dependências
-        run: npm ci --legacy-peer-deps
-      
-      - name: Verificar Formato (ESLint)
-        run: npm run lint --if-present
-        continue-on-error: true
-      
-      - name: Executar Testes
-        run: npm test -- --watchAll=false --passWithNoTests --coverage
-        continue-on-error: true
-      
-      - name: Upload Cobertura de Testes
-        uses: codecov/codecov-action@v4
-        if: always()
-        with:
-          files: ./coverage/lcov.info
-          flags: unittests
-          name: codecov-umbrella
-        continue-on-error: true
-
-  build:
-    name: Build Produção
-    needs: quality-check
-    runs-on: ubuntu-latest
-    
-    permissions:
-      contents: read
-      packages: write
-    
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version: '18'
           cache: 'npm'
       
-      - name: Cache npm
-        uses: actions/cache@v3
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
+      - run: npm ci
+      - run: npm run build
       
-      - name: Instalar Dependências
-        run: npm ci --legacy-peer-deps
-      
-      - name: Build da Aplicação
-        run: npm run build
-        env:
-          CI: true
-          REACT_APP_VERSION: ${{ github.sha }}
-          REACT_APP_BUILD_DATE: ${{ github.event.head_commit.timestamp }}
-          REACT_APP_BRANCH: ${{ github.ref_name }}
-      
-      - name: Verificar Tamanho do Build
-        run: |
-          echo "📊 Tamanho da Build:"
-          du -sh build/
-          echo ""
-          echo "📁 Arquivos gerados:"
-          find build/ -type f | wc -l
-          echo ""
-          echo "🔍 Estrutura:"
-          ls -lah build/ | head -20
-      
-      - name: Gerar GZIP Stats
-        run: |
-          echo "📦 Tamanho comprimido:"
-          find build/ -type f -name "*.js" -o -name "*.css" | while read file; do
-            gzip_size=$(gzip -c "$file" | wc -c)
-            echo "$file: $(($gzip_size / 1024))KB"
-          done
-        continue-on-error: true
-      
-      - name: Upload Build Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-${{ github.run_number }}
-          path: build/
-          retention-days: 30
-      
-      - name: Criar Release Notes
-        if: github.ref == 'refs/heads/main'
-        run: |
-          echo "# 🚀 Release Notes" > RELEASE.md
-          echo "" >> RELEASE.md
-          echo "**Build:** ${{ github.run_number }}" >> RELEASE.md
-          echo "**Commit:** ${{ github.sha }}" >> RELEASE.md
-          echo "**Data:** $(date)" >> RELEASE.md
-          echo "**Branch:** ${{ github.ref_name }}" >> RELEASE.md
-          echo "" >> RELEASE.md
-          echo "## Changelog" >> RELEASE.md
-          git log --oneline -10 >> RELEASE.md || echo "Sem histórico disponível"
-      
-      - name: Upload Release Notes
-        uses: actions/upload-artifact@v4
-        if: github.ref == 'refs/heads/main'
-        with:
-          name: release-notes-${{ github.run_number }}
-          path: RELEASE.md
-
-  deploy:
-    name: Deploy para GitHub Pages
-    needs: build
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
-    runs-on: ubuntu-latest
-    
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    
-    permissions:
-      contents: read
-      pages: write
-      id-token: write
-    
-    steps:
-      - name: Download Build Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: build-${{ github.run_number }}
-          path: build/
-      
-      - name: Setup Pages
-        uses: actions/configure-pages@v4
-      
-      - name: Upload Artifact
-        uses: actions/upload-pages-artifact@v2
+      - uses: actions/configure-pages@v4
+      - uses: actions/upload-pages-artifact@v2
         with:
           path: 'build'
       
-      - name: Deploy para GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v2
-      
-      - name: Verificar Deploy
-        run: |
-          echo "✅ Deploy Concluído!"
-          echo "URL: ${{ steps.deployment.outputs.page_url }}"
-      
-      - name: Health Check
-        run: |
-          sleep 10
-          curl -f "${{ steps.deployment.outputs.page_url }}" || echo "⚠️ Site ainda não está acessível"
-        continue-on-error: true
-
-  notification:
-    name: Notificações
-    needs: [quality-check, build, deploy]
-    if: always()
-    runs-on: ubuntu-latest
-    
-    steps:
-      - name: Resumo do Build
-        run: |
-          echo "╔════════════════════════════════════════════════════════╗"
-          echo "║           📊 RESUMO DO PIPELINE CI/CD                ║"
-          echo "╚════════════════════════════════════════════════════════╝"
-          echo ""
-          echo "🔍 Verificação de Qualidade: ${{ needs.quality-check.result }}"
-          echo "🏗️  Build: ${{ needs.build.result }}"
-          echo "🚀 Deploy: ${{ needs.deploy.result }}"
-          echo ""
-          echo "═══════════════════════════════════════════════════════════"
-      
-      - name: Sucesso ✅
-        if: needs.quality-check.result == 'success' && needs.build.result == 'success' && needs.deploy.result == 'success'
-        run: |
-          echo "✅ PIPELINE EXECUTADO COM SUCESSO!"
-          echo ""
-          echo "📍 Seu site está disponível em:"
-          echo "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
-          echo ""
-          echo "📈 Estatísticas:"
-          echo "   Build #${{ github.run_number }}"
-          echo "   Commit: ${{ github.sha }}"
-          echo "   Branch: ${{ github.ref_name }}"
-          echo "   Data: $(date)"
-      
-      - name: Falha ❌
-        if: failure()
-        run: |
-          echo "❌ FALHA NO PIPELINE"
-          echo ""
-          echo "Verifique os logs para mais detalhes:"
-          echo "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-        continue-on-error: true
-
-  performance:
-    name: Análise de Performance
-    needs: build
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push'
-    
-    steps:
-      - name: Download Build
-        uses: actions/download-artifact@v4
-        with:
-          name: build-${{ github.run_number }}
-          path: build/
-      
-      - name: Lighthouse CI
-        uses: treosh/lighthouse-ci-action@v9
-        if: false
-        with:
-          configPath: './.github/lighthouse.json'
-        continue-on-error: true
-      
-      - name: Análise de Tamanho
-        run: |
-          echo "📊 Análise de Tamanho de Arquivo"
-          echo "═══════════════════════════════════"
-          find build/ -type f \( -name "*.js" -o -name "*.css" -o -name "*.html" \) -exec du -h {} + | sort -rh | head -20
+      - uses: actions/deploy-pages@v2
