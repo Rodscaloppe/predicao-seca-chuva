@@ -68,3 +68,43 @@ This section has moved here: [https://facebook.github.io/create-react-app/docs/d
 ### `npm run build` fails to minify
 
 This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+
+## Deploy no Cloudflare Pages
+
+Este repositorio ja possui workflow para deploy automatico no Cloudflare Pages em pushes para `main` ou `master`.
+
+### 1. Criar projeto no Cloudflare Pages
+
+1. Acesse o dashboard da Cloudflare e crie um projeto em **Pages**.
+2. Guarde o nome exato do projeto (ex.: `sistema-predicao`).
+
+### 2. Configurar segredos no GitHub
+
+No repositorio, va em `Settings > Secrets and variables > Actions` e configure:
+
+- `CLOUDFLARE_API_TOKEN` (Secret)
+- `CLOUDFLARE_ACCOUNT_ID` (Secret)
+- `CLOUDFLARE_PAGES_PROJECT` (Variable)
+
+Permissoes recomendadas para o token:
+
+- `Cloudflare Pages: Edit`
+- `Account: Read`
+
+### 3. Fluxo de deploy
+
+Em cada push para `main`/`master`, o GitHub Actions executa:
+
+1. `npm ci`
+2. `npm run build`
+3. `wrangler pages deploy ./build`
+
+### 4. Roteamento SPA
+
+O arquivo `public/_redirects` foi adicionado para garantir fallback de rotas:
+
+```txt
+/* /index.html 200
+```
+
+Isso evita erro 404 ao abrir URLs internas direto no navegador.
