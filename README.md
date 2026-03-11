@@ -76,6 +76,9 @@ Este repositorio ja possui workflow para deploy automatico no Cloudflare Pages e
 ### 1. Criar projeto no Cloudflare Pages
 
 1. Acesse o dashboard da Cloudflare e crie um projeto em **Pages**.
+2. Em **Framework preset**, selecione **Create React App**.
+3. Configure `Build command` como `npm run build`.
+4. Configure `Build output directory` como `build`.
 2. Guarde o nome exato do projeto (ex.: `sistema-predicao`).
 
 ### 2. Configurar segredos no GitHub
@@ -108,3 +111,13 @@ O arquivo `public/_redirects` foi adicionado para garantir fallback de rotas:
 ```
 
 Isso evita erro 404 ao abrir URLs internas direto no navegador.
+
+### 5. Deploy local opcional com Wrangler
+
+Se quiser publicar manualmente da sua maquina:
+
+1. Exporte `CLOUDFLARE_PAGES_PROJECT` no terminal.
+2. Rode `npm run pages:build`.
+3. Rode `npm run pages:deploy`.
+
+O arquivo `wrangler.toml` ja define `pages_build_output_dir = "build"`.
