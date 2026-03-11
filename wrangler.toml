@@ -1,5 +1,5 @@
 # Cloudflare Pages config for this CRA project.
 # Update `name` to match your Pages project if needed.
-name = "sistema-predicao"
+name = "predicao-seca-chuva"
 compatibility_date = "2026-03-11"
 pages_build_output_dir = "build"
