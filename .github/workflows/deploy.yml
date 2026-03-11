@@ -1,0 +1,32 @@
+name: Deploy para Cloudflare Pages
+
+on:
+  push:
+    branches: ["master", "main"]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout do codigo
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Build de producao
+        run: npm run build
+
+      - name: Deploy para Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{Hb5ktxPy6B6FedZD-1I7DN_w7x3H_7Xc4Sczc6bT}}
+          accountId: ${{522c31c90527089954a2e11b7f59f8fa}}
+          command: pages deploy ./build

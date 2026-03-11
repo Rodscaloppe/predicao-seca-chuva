@@ -87,7 +87,6 @@ No repositorio, va em `Settings > Secrets and variables > Actions` e configure:
 
 - `CLOUDFLARE_API_TOKEN` (Secret)
 - `CLOUDFLARE_ACCOUNT_ID` (Secret)
-- `CLOUDFLARE_PAGES_PROJECT` (Variable)
 
 Permissoes recomendadas para o token:
 
@@ -116,8 +115,7 @@ Isso evita erro 404 ao abrir URLs internas direto no navegador.
 
 Se quiser publicar manualmente da sua maquina:
 
-1. Exporte `CLOUDFLARE_PAGES_PROJECT` no terminal.
-2. Rode `npm run pages:build`.
-3. Rode `npm run pages:deploy`.
+1. Rode `npm run pages:build`.
+2. Rode `npm run pages:deploy`.
 
-O arquivo `wrangler.toml` ja define `pages_build_output_dir = "build"`.
+O arquivo `wrangler.toml` ja define `name = "sistema-predicao"` e `pages_build_output_dir = "build"`.

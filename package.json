@@ -20,7 +20,7 @@
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "pages:build": "npm run build",
-    "pages:deploy": "wrangler pages deploy ./build --project-name=$CLOUDFLARE_PAGES_PROJECT"
+    "pages:deploy": "wrangler pages deploy ./build"
   },
   "engines": {
     "node": ">=18"
