@@ -1,44 +1,34 @@
-name: Deploy Automático
+name: Deploy de Site Estático
 
 on:
   push:
-    branches: [main, master]
+    branches: ["master", "main"]
   workflow_dispatch:
 
-# ADICIONADO: Permissões obrigatórias para o GitHub Pages funcionar nas versões mais recentes
 permissions:
   contents: read
   pages: write
   id-token: write
 
 jobs:
-  build-and-deploy:
-    runs-on: ubuntu-latest
-    
-    # ADICIONADO: Define o ambiente para o log do GitHub ficar mais limpo
+  deploy:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-      
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      
-      - uses: actions/setup-node@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+        
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          node-version: '18'
-          cache: 'npm'
-      
-      - run: npm ci
-      - run: npm run build
-      
-      - uses: actions/configure-pages@v4
-      
-      # ATUALIZADO: de v2 para v3 (isso resolve o erro do upload-artifact)
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: 'build'
-      
-      # ATUALIZADO: de v2 para v4
+          # O ponto '.' significa que ele vai pegar todos os arquivos da raiz do seu repositório
+          path: '.' 
+          
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
