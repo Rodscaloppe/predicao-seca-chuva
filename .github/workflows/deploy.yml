@@ -112,7 +112,7 @@ jobs:
         continue-on-error: true
       
       - name: Upload Build Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: build-${{ github.run_number }}
           path: build/
@@ -132,7 +132,7 @@ jobs:
           git log --oneline -10 >> RELEASE.md || echo "Sem histórico disponível"
       
       - name: Upload Release Notes
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: github.ref == 'refs/heads/main'
         with:
           name: release-notes-${{ github.run_number }}
@@ -155,7 +155,7 @@ jobs:
     
     steps:
       - name: Download Build Artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: build-${{ github.run_number }}
           path: build/
@@ -233,7 +233,7 @@ jobs:
     
     steps:
       - name: Download Build
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: build-${{ github.run_number }}
           path: build/
